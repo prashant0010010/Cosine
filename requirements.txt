@@ -1,0 +1,7 @@
+sentence-transformers
+scikit-learn
+numpy
+nltk
+beautifulsoup4
+requests
+matplotlib
