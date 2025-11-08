@@ -14,6 +14,10 @@ import tkinter as tk
 from tkinter import scrolledtext, messagebox, filedialog, simpledialog
 from PIL import Image, ImageTk
 import io
+from modules.readability_analyzer import analyze_readability
+
+
+
 import matplotlib.pyplot as plt
 from modules.text_cleaner import clean_text
 from modules.bert_analyzer import (
@@ -180,6 +184,17 @@ def analyze_sentences_gui():
         status = "⚠️ Weak" if is_weak else "✅ Strong"
         result_text.insert(tk.END, f"{i}. ({similarity:.3f}) {status}\n{sentence}\n\n")
 
+def analyze_readability_gui():
+    article = article_text.get("1.0", tk.END)
+
+    if not article.strip():
+        messagebox.showwarning("Input Error", "Please enter the article text.")
+        return
+
+    report = analyze_readability(article)
+
+    result_text.delete("1.0", tk.END)
+    result_text.insert(tk.END, report)
 
 # --- Tkinter GUI ---
 root = tk.Tk()
@@ -199,6 +214,8 @@ tk.Button(root, text="Clear Niche Memory", command=clear_memory).pack(pady=5)
 tk.Button(root, text="Analyze Sentences", command=analyze_sentences_gui).pack(pady=5)
 
 tk.Button(root, text="Generate & Save SEO Report", command=generate_and_save_report_gui).pack(pady=5)
+tk.Button(root, text="Analyze Readability", command=analyze_readability_gui).pack(pady=5)
+
 
 tk.Button(root, text="Generate SEO Report", command=generate_report_gui).pack(pady=5)
 graph_label = tk.Label(root)

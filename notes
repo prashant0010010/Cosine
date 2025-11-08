@@ -1,0 +1,7 @@
+In CMD
+
+to run:
+.\.venv\Scripts\activate.bat
+
+run by: 
+python main.py
