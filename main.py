@@ -1,24 +1,8 @@
-import tkinter as tk
-from tkinter import scrolledtext, messagebox
-from modules.text_cleaner import clean_text
-from modules.bert_analyzer import get_sentence_embeddings, compute_semantic_density, compute_cosine_similarity, add_to_niche_memory, load_niche_memory, clear_niche_memory
-from modules.seo_report import print_report
-from modules.bert_analyzer import analyze_sentences
-from modules.seo_report import generate_report
-from PIL import Image, ImageTk
-import io
-from modules.seo_report import generate_simple_summary, save_report_as_pdf
-from tkinter import filedialog
+import streamlit as st
 import matplotlib.pyplot as plt
-import tkinter as tk
-from tkinter import scrolledtext, messagebox, filedialog, simpledialog
-from PIL import Image, ImageTk
 import io
-from modules.readability_analyzer import analyze_readability
+from PIL import Image
 
-
-
-import matplotlib.pyplot as plt
 from modules.text_cleaner import clean_text
 from modules.bert_analyzer import (
     get_sentence_embeddings,
@@ -32,198 +16,175 @@ from modules.bert_analyzer import (
 from modules.seo_report import (
     generate_simple_summary,
     save_report_as_pdf,
-    generate_report,   # if you still use it
+    generate_report,
 )
+from modules.readability_analyzer import analyze_readability
 
 
+# --- Streamlit UI ---
+st.set_page_config(page_title="Semantic Density & SEO Tool", layout="wide")
+st.title("🔍 Semantic Density & SEO Analyzer")
+
+# --- Inputs ---
+article_text = st.text_area("Paste Article:", height=200)
+target_text = st.text_area("Target SEO Topic / Competitor Text:", height=150)
+
+# --- Define functions (same logic as Tkinter version) ---
 def generate_and_save_report_gui():
-    article = article_text.get("1.0", tk.END)
-    target = target_text.get("1.0", tk.END)
-
-    if not article.strip() or not target.strip():
-        messagebox.showwarning("Input Error", "Please enter both article and target topic.")
+    if not article_text.strip() or not target_text.strip():
+        st.warning("Please enter both article and target topic.")
         return
 
     # Run analysis
-    sentence_results = analyze_sentences(article, target)
-    _, embeddings = get_sentence_embeddings(clean_text(article))
+    sentence_results = analyze_sentences(article_text, target_text)
+    _, embeddings = get_sentence_embeddings(clean_text(article_text))
     density = compute_semantic_density(embeddings)
-    similarity = compute_cosine_similarity(article, target)
+    similarity = compute_cosine_similarity(article_text, target_text)
 
     # Create summary
     summary = generate_simple_summary(sentence_results, density, similarity)
 
-    # Generate horizontal bar chart for sentence similarity
-    sentences = [ (s if len(s) <= 80 else s[:77] + "...") for s, _, _ in sentence_results ]  # trim long sentences
-    scores = [ sc for _, sc, _ in sentence_results ]
+    # Generate horizontal bar chart
+    sentences = [(s if len(s) <= 80 else s[:77] + "...") for s, _, _ in sentence_results]
+    scores = [sc for _, sc, _ in sentence_results]
 
     if not scores:
-        messagebox.showwarning("No Data", "No sentences found to plot.")
+        st.warning("No sentences found to plot.")
         return
 
-    plt.figure(figsize=(8, max(3, len(scores)*0.3)))
-    plt.barh(range(len(scores)), scores, align='center')
-    plt.yticks(range(len(scores)), sentences)
-    plt.xlabel("Cosine Similarity")
-    plt.title("Sentence Similarity Scores")
-    plt.xlim(0, 1)
+    fig, ax = plt.subplots(figsize=(8, max(3, len(scores) * 0.3)))
+    ax.barh(range(len(scores)), scores, align='center')
+    ax.set_yticks(range(len(scores)))
+    ax.set_yticklabels(sentences)
+    ax.set_xlabel("Cosine Similarity")
+    ax.set_title("Sentence Similarity Scores")
+    ax.set_xlim(0, 1)
     plt.tight_layout()
 
     chart_path = "sentence_similarity.png"
     plt.savefig(chart_path)
-    plt.close()  # IMPORTANT to free memory
+    st.pyplot(fig)
+    plt.close()
 
-    # Ask for article title
-    title_input = simpledialog.askstring("Article Title", "Enter the article title:")
-    if not title_input:
-        title_input = "Untitled Article"
+    title_input = st.text_input("Enter the article title:", "Untitled Article")
 
-    # Show summary in GUI
-    result_text.delete("1.0", tk.END)
-    result_text.insert(tk.END, summary)
+    st.subheader("🧾 SEO Summary")
+    st.text(summary)
 
-    # Display chart in GUI (optional)
-    try:
-        img = Image.open(chart_path)
-        img_tk = ImageTk.PhotoImage(img)
-        graph_label.configure(image=img_tk)
-        graph_label.image = img_tk
-    except Exception:
-        pass
-
-    # Ask where to save PDF
-    save_path = filedialog.asksaveasfilename(
-        defaultextension=".pdf",
-        filetypes=[("PDF Files", "*.pdf")],
-        title="Save SEO Report"
-    )
-
-    if save_path:
-        save_report_as_pdf(summary, save_path, article_title=title_input, chart_path=chart_path)
-        messagebox.showinfo("Report Saved", f"SEO Report saved to:\n{save_path}")
+    if st.button("Save SEO Report as PDF"):
+        save_report_as_pdf(summary, "SEO_Report.pdf", article_title=title_input, chart_path=chart_path)
+        st.success("SEO Report saved as SEO_Report.pdf")
 
 
 def analyze_article():
-    article = article_text.get("1.0", tk.END)
-    target = target_text.get("1.0", tk.END)
-    
-    if not article.strip() or not target.strip():
-        messagebox.showwarning("Input Error", "Please enter both article and target topic.")
+    if not article_text.strip() or not target_text.strip():
+        st.warning("Please enter both article and target topic.")
         return
 
-    article_clean = clean_text(article)
-    target_clean = clean_text(target)
-    
-    sentences, embeddings = get_sentence_embeddings(article_clean)
+    article_clean = clean_text(article_text)
+    target_clean = clean_text(target_text)
+
+    _, embeddings = get_sentence_embeddings(article_clean)
     density = compute_semantic_density(embeddings)
     similarity = compute_cosine_similarity(article_clean, target_clean)
 
     niche_embeddings = load_niche_memory()
     niche_sim = "N/A"
     if niche_embeddings:
-        # simple average comparison
         niche_sim = compute_cosine_similarity(article_clean, " ".join([str(e) for e in niche_embeddings]))
 
-    result_text.delete("1.0", tk.END)
-    result_text.insert(tk.END, f"Semantic Density: {density:.4f}\n")
-    result_text.insert(tk.END, f"Cosine Similarity to target: {similarity:.4f}\n")
-    result_text.insert(tk.END, f"Similarity with niche memory: {niche_sim}\n")
+    st.write(f"**Semantic Density:** {density:.4f}")
+    st.write(f"**Cosine Similarity to target:** {similarity:.4f}")
+    st.write(f"**Similarity with niche memory:** {niche_sim}")
+
 
 def add_to_memory():
-    article = article_text.get("1.0", tk.END)
-    add_to_niche_memory(article)
-    messagebox.showinfo("Success", "Article added to niche memory!")
+    if not article_text.strip():
+        st.warning("Please enter article text before adding to memory.")
+        return
+    add_to_niche_memory(article_text)
+    st.success("Article added to niche memory!")
+
 
 def clear_memory():
     clear_niche_memory()
-    messagebox.showinfo("Success", "Niche memory cleared!")
+    st.success("Niche memory cleared!")
+
 
 def generate_report_gui():
-    article = article_text.get("1.0", tk.END)
-    target = target_text.get("1.0", tk.END)
-
-    if not article.strip() or not target.strip():
-        messagebox.showwarning("Input Error", "Please enter both article and target topic.")
+    if not article_text.strip() or not target_text.strip():
+        st.warning("Please enter both article and target topic.")
         return
 
-    sentence_results = analyze_sentences(article, target)
-    _, embeddings = get_sentence_embeddings(clean_text(article))
+    sentence_results = analyze_sentences(article_text, target_text)
+    _, embeddings = get_sentence_embeddings(clean_text(article_text))
     density = compute_semantic_density(embeddings)
-    similarity = compute_cosine_similarity(article, target)
+    similarity = compute_cosine_similarity(article_text, target_text)
 
     img_bytes, summary_text = generate_report(sentence_results, density, similarity)
 
-    # Display text summary
-    result_text.delete("1.0", tk.END)
-    result_text.insert(tk.END, summary_text)
+    st.subheader("📊 SEO Report Summary")
+    st.text(summary_text)
 
-    # Display graph in GUI
     img = Image.open(io.BytesIO(img_bytes.read()))
-    img_tk = ImageTk.PhotoImage(img)
-    graph_label.configure(image=img_tk)
-    graph_label.image = img_tk
+    st.image(img, caption="Sentence Similarity Chart")
+
 
 def analyze_sentences_gui():
-    """
-    Runs the sentence-level analysis and displays weak sentences in the GUI.
-    """
-    article = article_text.get("1.0", tk.END)
-    target = target_text.get("1.0", tk.END)
-
-    if not article.strip() or not target.strip():
-        messagebox.showwarning("Input Error", "Please enter both article and target topic.")
+    if not article_text.strip() or not target_text.strip():
+        st.warning("Please enter both article and target topic.")
         return
 
-    sentence_results = analyze_sentences(article, target)
+    sentence_results = analyze_sentences(article_text, target_text)
 
-    # Show results in the result text area
-    result_text.delete("1.0", tk.END)
-    result_text.insert(tk.END, "Sentence-Level Semantic Analysis:\n\n")
-
+    st.subheader("Sentence-Level Semantic Analysis")
     for i, (sentence, similarity, is_weak) in enumerate(sentence_results, 1):
         status = "⚠️ Weak" if is_weak else "✅ Strong"
-        result_text.insert(tk.END, f"{i}. ({similarity:.3f}) {status}\n{sentence}\n\n")
+        st.write(f"**{i}. ({similarity:.3f}) {status}**\n{sentence}\n")
+
 
 def analyze_readability_gui():
-    article = article_text.get("1.0", tk.END)
-
-    if not article.strip():
-        messagebox.showwarning("Input Error", "Please enter the article text.")
+    if not article_text.strip():
+        st.warning("Please enter the article text.")
         return
 
-    report = analyze_readability(article)
-
-    result_text.delete("1.0", tk.END)
-    result_text.insert(tk.END, report)
-
-# --- Tkinter GUI ---
-root = tk.Tk()
-root.title("Semantic Density & SEO Tool")
-
-tk.Label(root, text="Paste Article:").pack()
-article_text = scrolledtext.ScrolledText(root, width=80, height=10)
-article_text.pack()
-
-tk.Label(root, text="Target SEO Topic / Competitor Text:").pack()
-target_text = scrolledtext.ScrolledText(root, width=80, height=5)
-target_text.pack()
-
-tk.Button(root, text="Analyze Article", command=analyze_article).pack(pady=5)
-tk.Button(root, text="Add Article to Niche Memory", command=add_to_memory).pack(pady=5)
-tk.Button(root, text="Clear Niche Memory", command=clear_memory).pack(pady=5)
-tk.Button(root, text="Analyze Sentences", command=analyze_sentences_gui).pack(pady=5)
-
-tk.Button(root, text="Generate & Save SEO Report", command=generate_and_save_report_gui).pack(pady=5)
-tk.Button(root, text="Analyze Readability", command=analyze_readability_gui).pack(pady=5)
+    report = analyze_readability(article_text)
+    st.subheader("🧠 Readability Report")
+    st.text(report)
 
 
-tk.Button(root, text="Generate SEO Report", command=generate_report_gui).pack(pady=5)
-graph_label = tk.Label(root)
-graph_label.pack(pady=5)
+# --- Buttons ---
+col1, col2, col3 = st.columns(3)
 
+with col1:
+    if st.button("Analyze Article"):
+        analyze_article()
 
-tk.Label(root, text="Results:").pack()
-result_text = scrolledtext.ScrolledText(root, width=80, height=10)
-result_text.pack()
+with col2:
+    if st.button("Add Article to Niche Memory"):
+        add_to_memory()
 
-root.mainloop()
+with col3:
+    if st.button("Clear Niche Memory"):
+        clear_memory()
+
+st.markdown("---")
+
+col4, col5, col6 = st.columns(3)
+
+with col4:
+    if st.button("Analyze Sentences"):
+        analyze_sentences_gui()
+
+with col5:
+    if st.button("Generate SEO Report"):
+        generate_report_gui()
+
+with col6:
+    if st.button("Generate & Save SEO Report"):
+        generate_and_save_report_gui()
+
+st.markdown("---")
+
+if st.button("Analyze Readability"):
+    analyze_readability_gui()

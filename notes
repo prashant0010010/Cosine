@@ -4,4 +4,11 @@ to run:
 .\.venv\Scripts\activate.bat
 
 run by: 
-python main.py
+#
+# To activate this environment, use
+#
+#     $ conda activate seoanalyzer
+#
+# To deactivate an active environment, use
+#
+#     $ conda deactivate
