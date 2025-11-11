@@ -1,3 +1,9 @@
+import os
+port = int(os.environ.get("PORT", 8501))
+# Make sure Streamlit runs on the right port for Vercel
+os.environ["STREAMLIT_SERVER_PORT"] = os.environ.get("PORT", "8501")
+os.environ["STREAMLIT_SERVER_HEADLESS"] = "true"
+
 import streamlit as st
 import matplotlib.pyplot as plt
 import io
