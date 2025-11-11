@@ -5,3 +5,10 @@ nltk
 beautifulsoup4
 requests
 matplotlib
+streamlit
+sentence-transformers
+torch
+textstat
+nltk
+reportlab
+matplotlib

@@ -9,6 +9,6 @@ run by:
 #
 #     $ conda activate seoanalyzer
 #
-# To deactivate an active environment, use
+# To deactivate an active environment, useco
 #
 #     $ conda deactivate
