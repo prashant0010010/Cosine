@@ -8,6 +8,13 @@ from nltk import sent_tokenize
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
+import nltk
+
+# Ensure punkt and wordnet are available on Streamlit Cloud
+nltk.download('punkt')
+nltk.download('punkt_tab')
+nltk.download('wordnet')
+nltk.download('omw-1.4')
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
