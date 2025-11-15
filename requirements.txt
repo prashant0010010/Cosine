@@ -12,3 +12,4 @@ textstat
 nltk
 reportlab
 matplotlib
+google-generativeai
