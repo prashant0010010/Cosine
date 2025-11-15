@@ -13,3 +13,6 @@ nltk
 reportlab
 matplotlib
 google-generativeai
+google-genai
+
+
