@@ -1,4 +1,4 @@
-from google import genai
+from google.genai import Client
 from google.genai import types
 
 SYSTEM_PROMPT = """
@@ -13,7 +13,7 @@ Return ONLY the fully rewritten article text.
 
 def rewrite_article_gemini_v2(original_article, target_keyword, api_key=None):
     try:
-        client = genai.Client(api_key=api_key)
+        client = Client(api_key=api_key)
     except Exception as e:
         return f"Error initializing Gemini client: {e}"
 
