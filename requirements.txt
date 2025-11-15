@@ -13,4 +13,10 @@ nltk
 reportlab
 matplotlib
 google-generativeai
+<<<<<<< HEAD
 google-genai
+=======
+google-genai
+
+
+>>>>>>> ced779e03eb28d48958834f3bc016c482ce116fa
