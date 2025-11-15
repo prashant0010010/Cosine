@@ -3,6 +3,8 @@ port = int(os.environ.get("PORT", 8501))
 # Make sure Streamlit runs on the right port for Vercel
 os.environ["STREAMLIT_SERVER_PORT"] = os.environ.get("PORT", "8501")
 os.environ["STREAMLIT_SERVER_HEADLESS"] = "true"
+import google.generativeai as genai
+from modules.gemini_optimizer import rewrite_article_gemini_v2
 
 import streamlit as st
 import matplotlib.pyplot as plt
@@ -103,6 +105,29 @@ def analyze_article():
     st.write(f"**Cosine Similarity to target:** {similarity:.4f}")
     st.write(f"**Similarity with niche memory:** {niche_sim}")
 
+#analyze article information
+st.markdown("### 📘 How to Interpret These Metrics")
+
+st.info("""
+**Semantic Density**  
+Measures how tightly packed your article’s meaning is around the target topic.  
+- **0.00 – 0.40 → Weak**  
+- **0.41 – 0.70 → Moderate**  
+- **0.71 – 1.00 → Strong**  
+
+Higher = More semantically rich and aligned with the topic.
+""")
+
+st.info("""
+**Cosine Similarity**  
+Measures how close your article's meaning is to the target keyword or competitor content.  
+- **0.00 – 0.50 → Low relevance**  
+- **0.51 – 0.75 → Medium relevance**  
+- **0.76 – 1.00 → High relevance**  
+
+Higher = Better topical similarity.
+""")
+
 
 def add_to_memory():
     if not article_text.strip():
@@ -148,6 +173,18 @@ def analyze_sentences_gui():
         status = "⚠️ Weak" if is_weak else "✅ Strong"
         st.write(f"**{i}. ({similarity:.3f}) {status}**\n{sentence}\n")
 
+# analyze sentence explain
+st.info("""
+### 📘 How Sentence Strength Works
+Each sentence is compared to your target topic using semantic similarity.
+
+**Score guide:**
+- **0.71 – 1.00 → 🟢 Strong:** highly aligned  
+- **0.41 – 0.70 → 🟡 Moderate:** could be improved  
+- **0.00 – 0.40 → 🔴 Weak:** needs rewriting  
+
+Weak sentences usually lack LSI keywords or drift off-topic.
+""")
 
 def analyze_readability_gui():
     if not article_text.strip():
@@ -194,3 +231,73 @@ st.markdown("---")
 
 if st.button("Analyze Readability"):
     analyze_readability_gui()
+
+
+# ---------------------------
+# BUTTON: GENERATE OPTIMIZED CONTENT
+# ---------------------------
+
+st.markdown("### 🔧 AI-Optimized SEO Rewrite")
+
+if st.button("✨ Generate Semantically Improved Article (Gemini AI)"):
+
+    if not article_text.strip():
+        st.error("Please paste an article first.")
+    elif not target_text.strip():
+        st.error("Please enter a target SEO topic or competitor text.")
+    else:
+        target_keyword = target_text.strip()
+
+        with st.spinner("Optimizing content using Gemini AI..."):
+            improved_article = rewrite_article_gemini_v2(
+                article_text,
+                target_keyword,
+                st.secrets["GEMINI_API_KEY"]
+            )
+
+        st.success("🎉 Optimization Complete!")
+        st.markdown("### 📝 Optimized Article")
+        st.text_area("Improved Article:", improved_article, height=300)
+
+        # Re-analyze improved article
+        sentence_results = analyze_sentences(improved_article, target_keyword)
+
+        st.markdown("### 📈 Improved Sentence-Level Semantic Scores")
+
+        for i, (sentence, similarity, _) in enumerate(sentence_results, 1):
+
+            if similarity >= 0.71:
+                label = "🟢 Strong"
+            elif similarity >= 0.41:
+                label = "🟡 Moderate"
+            else:
+                label = "🔴 Weak"
+
+            st.write(f"**{i}. {label} ({similarity:.3f})** {sentence}")
+
+        # ----------------------------------
+        # SUMMARY BLOCK
+        # ----------------------------------
+
+        strong = [s for s in sentence_results if s[1] >= 0.71]
+        moderate = [s for s in sentence_results if 0.41 <= s[1] < 0.71]
+        weak = [s for s in sentence_results if s[1] < 0.41]
+
+        st.markdown("### 📘 Summary of Improvements")
+
+        st.success(f"🟢 Strong Sentences: {len(strong)}")
+        st.warning(f"🟡 Moderate Sentences: {len(moderate)}")
+        st.error(f"🔴 Weak Sentences: {len(weak)}")
+
+        st.info("""
+        ### What Improved?
+        ✔ Higher semantic alignment  
+        ✔ More LSI keywords  
+        ✔ More topic relevance  
+        ✔ Stronger keyword relationships  
+
+        ### What Still Needs Improvement?
+        - Weak sentences need rewriting  
+        - Add more context or depth  
+        - Use more topic-related entities  
+        """)
