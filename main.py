@@ -105,29 +105,6 @@ def analyze_article():
     st.write(f"**Cosine Similarity to target:** {similarity:.4f}")
     st.write(f"**Similarity with niche memory:** {niche_sim}")
 
-#analyze article information
-st.markdown("### 📘 How to Interpret These Metrics")
-
-st.info("""
-**Semantic Density**  
-Measures how tightly packed your article’s meaning is around the target topic.  
-- **0.00 – 0.40 → Weak**  
-- **0.41 – 0.70 → Moderate**  
-- **0.71 – 1.00 → Strong**  
-
-Higher = More semantically rich and aligned with the topic.
-""")
-
-st.info("""
-**Cosine Similarity**  
-Measures how close your article's meaning is to the target keyword or competitor content.  
-- **0.00 – 0.50 → Low relevance**  
-- **0.51 – 0.75 → Medium relevance**  
-- **0.76 – 1.00 → High relevance**  
-
-Higher = Better topical similarity.
-""")
-
 
 def add_to_memory():
     if not article_text.strip():
@@ -174,17 +151,44 @@ def analyze_sentences_gui():
         st.write(f"**{i}. ({similarity:.3f}) {status}**\n{sentence}\n")
 
 # analyze sentence explain
-st.info("""
-### 📘 How Sentence Strength Works
+st.markdown("## How to Interpret These Metrics")
+
+with st.expander(" Semantic Density (What it means)"):
+    st.markdown("""
+**Semantic Density**  
+Measures how tightly packed your article’s meaning is around the target topic.
+
+- **0.00 – 0.40 → Weak**  
+- **0.41 – 0.70 → Moderate**  
+- **0.71 – 1.00 → Strong**
+
+Higher = More semantically aligned with the topic.
+""")
+
+with st.expander(" Cosine Similarity (Topic alignment score)"):
+    st.markdown("""
+**Cosine Similarity**  
+Measures how close your article's meaning is to the target keyword or competitor content.
+
+- **0.00 – 0.50 → Low relevance**  
+- **0.51 – 0.75 → Medium relevance**  
+- **0.76 – 1.00 → High relevance**
+
+Higher = Better topical similarity.
+""")
+
+with st.expander(" How Sentence Strength Works"):
+    st.markdown("""
 Each sentence is compared to your target topic using semantic similarity.
 
-**Score guide:**
+### Score Guide
 - **0.71 – 1.00 → 🟢 Strong:** highly aligned  
 - **0.41 – 0.70 → 🟡 Moderate:** could be improved  
-- **0.00 – 0.40 → 🔴 Weak:** needs rewriting  
+- **0.00 – 0.40 → 🔴 Weak:** needs rewriting
 
 Weak sentences usually lack LSI keywords or drift off-topic.
 """)
+##info part above
 
 def analyze_readability_gui():
     if not article_text.strip():
@@ -239,6 +243,12 @@ if st.button("Analyze Readability"):
 
 st.markdown("### 🔧 AI-Optimized SEO Rewrite")
 
+# Store original results for comparison (before clicking button)
+if article_text.strip() and target_text.strip():
+    original_sentence_results = analyze_sentences(article_text, target_text)
+else:
+    original_sentence_results = []
+
 if st.button("✨ Generate Semantically Improved Article (Gemini AI)"):
 
     if not article_text.strip():
@@ -260,11 +270,11 @@ if st.button("✨ Generate Semantically Improved Article (Gemini AI)"):
         st.text_area("Improved Article:", improved_article, height=300)
 
         # Re-analyze improved article
-        sentence_results = analyze_sentences(improved_article, target_keyword)
+        improved_sentence_results = analyze_sentences(improved_article, target_keyword)
 
         st.markdown("### 📈 Improved Sentence-Level Semantic Scores")
 
-        for i, (sentence, similarity, _) in enumerate(sentence_results, 1):
+        for i, (sentence, similarity, _) in enumerate(improved_sentence_results, 1):
 
             if similarity >= 0.71:
                 label = "🟢 Strong"
@@ -279,9 +289,9 @@ if st.button("✨ Generate Semantically Improved Article (Gemini AI)"):
         # SUMMARY BLOCK
         # ----------------------------------
 
-        strong = [s for s in sentence_results if s[1] >= 0.71]
-        moderate = [s for s in sentence_results if 0.41 <= s[1] < 0.71]
-        weak = [s for s in sentence_results if s[1] < 0.41]
+        strong = [s for s in improved_sentence_results if s[1] >= 0.71]
+        moderate = [s for s in improved_sentence_results if 0.41 <= s[1] < 0.71]
+        weak = [s for s in improved_sentence_results if s[1] < 0.41]
 
         st.markdown("### 📘 Summary of Improvements")
 
@@ -301,3 +311,38 @@ if st.button("✨ Generate Semantically Improved Article (Gemini AI)"):
         - Add more context or depth  
         - Use more topic-related entities  
         """)
+
+        # -----------------------------
+        # 🔥 SENTENCE COMPARISON TABLE
+        # -----------------------------
+
+        import pandas as pd
+
+        st.markdown("## 📊 Sentence-by-Sentence Comparison")
+
+        if not original_sentence_results:
+            st.warning("Original sentences not found — comparison unavailable.")
+        else:
+            min_len = min(len(original_sentence_results), len(improved_sentence_results))
+            comparison_rows = []
+
+            for i in range(min_len):
+                old_sentence, old_score, _ = original_sentence_results[i]
+                new_sentence, new_score, _ = improved_sentence_results[i]
+
+                status = (
+                    "🟢 Improved" if new_score > old_score else
+                    "🔴 Declined" if new_score < old_score else
+                    "⚪ Same"
+                )
+
+                comparison_rows.append({
+                    "Old Sentence": old_sentence,
+                    "Old Score": round(old_score, 3),
+                    "New Sentence": new_sentence,
+                    "New Score": round(new_score, 3),
+                    "Status": status,
+                })
+
+            df_compare = pd.DataFrame(comparison_rows)
+            st.dataframe(df_compare, use_container_width=True)

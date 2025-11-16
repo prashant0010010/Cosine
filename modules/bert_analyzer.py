@@ -56,25 +56,35 @@ def clear_niche_memory():
     if os.path.exists(MEMORY_FILE):
         os.remove(MEMORY_FILE)
 
-def analyze_sentences(article_text, target_text, threshold=0.5):
+def analyze_sentences(article_text, target_text):
     """
     Analyze each sentence for semantic similarity to the target topic.
-    Returns a list of (sentence, similarity_score).
+    Returns list of: (sentence, similarity, is_weak)
     """
     sentences = sent_tokenize(article_text)
     if not sentences:
         return []
 
+    # Get embeddings
     sentence_embeddings = model.encode(sentences)
     target_embedding = model.encode([target_text])[0]
 
-    similarities = cosine_similarity(sentence_embeddings, [target_embedding])
-    sentence_scores = list(zip(sentences, similarities.flatten()))
+    similarities = cosine_similarity(sentence_embeddings, [target_embedding]).flatten()
 
-    # Mark sentences below threshold as weak
     result = []
-    for sent, score in sentence_scores:
-        label = "✅ Strong" if score >= threshold else "⚠️ Weak"
-        result.append((sent.strip(), float(score), label))
+    for sent, score in zip(sentences, similarities):
+
+        # MATCH EXACTLY WITH YOUR STREAMLIT UI
+        if score >= 0.71:
+            label = "🟢 Strong"
+            is_weak = False
+        elif score >= 0.41:
+            label = "🟡 Moderate"
+            is_weak = False
+        else:
+            label = "🔴 Weak"
+            is_weak = True
+
+        result.append((sent.strip(), float(score), is_weak))
 
     return result
