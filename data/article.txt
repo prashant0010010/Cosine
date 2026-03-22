@@ -1,0 +1,7 @@
+article_text = """
+SEO is evolving fast. AI is changing search engines. Content needs to be optimized for both users and search engines.
+
+Natural language understanding is becoming crucial. Machine learning helps Google rank content. Optimizing your website requires understanding semantics.
+
+I had lunch today. The sun is shining brightly. Tomorrow will be a great day.
+"""

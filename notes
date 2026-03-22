@@ -1,0 +1,14 @@
+In CMD
+
+to run:
+.\.venv\Scripts\activate.bat
+
+run by: 
+#
+# To activate this environment, use
+#
+#     $ conda activate seoanalyzer
+#
+# To deactivate an active environment, useco
+#
+#     $ conda deactivate
